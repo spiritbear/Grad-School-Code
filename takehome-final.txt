@@ -1,0 +1,281 @@
+;;; Shiv Indap
+;;; P523
+;;; sindap
+;;; Take-Home Exam
+The intent of this take-home final is to ensure that you understand what
+our compilers do and why.
+
+Please keep your answers brief (at most two or three sentences) and to the
+point.  This will simplify our task when we grade your answers and keep us
+in good humor, which is better for us and better for you.  Answers that
+contain the correct answer but also contain off-topic or incorrect
+information will be marked down.
+
+You may consult with other students and post questions and _hints_ to the
+message board, but your answers should be given _in your own words_.
+You may use any other resources available to you, including the assignment
+descriptions, lecture notes, online compiler, and your compiler.
+
+Insert your answers into the text below, with each answer after the
+corresponding problem statement, and submit your completed document, in
+_plain text_, via the submission page as "takehome-final.txt", no later
+than Wednesday at 5pm.
+
+Prepare your submission with a text editor like vi or emacs, if you can. 
+If you use Microsoft Word, be aware that it sometimes inserts special
+characters into a document, e.g., for quotation marks, even when you save
+the document as plain text.  If this happens, please fix the document
+before you submit.
+
+--------
+
+1. Describe how the lambda expressions in the source language (i.e., in
+   the input to parse-scheme) differ from UIL lambda expressions (i.e., in
+   the input to verify-uil).
+	
+   The lambda expression in the source language contain arbitary expressions,
+   some of the examples are let,letrec, begin, quote datums etc, when we come 
+   to UIL, the Body of lambda expressions is simplified, it can contain simple if-else
+   statements,allocation statements and expressions which always return a value
+   	
+--------
+
+2. Describe how source lambda expressions are converted into UIL lambda
+   expressions.
+   Get The free variables in lambda expressions, add the closures form which associates with each 
+   function its label and free-vars, convert the closure form to make-procedure, free-vars are set 
+   using procedure-set! and code can be retrieved using procedure-ref. Specify representation 
+   converts procedure-ref, procedure-set! into mset!, mref respectively, which appears in UIL lambda
+   
+--------
+
+3. Describe how variables in the source language differ from UIL variables.
+   Variables in the source language symbols prefixed without a dot, we have the
+   freedom to use variables wherever we want including duplicate symbols
+	eg (let ([x 1])
+		(let ([x 2])
+		 x))
+   in UIL 
+   all variables are uniquely identified by a suffix, so an expression like above
+   will get converted to (begin 
+							(set! x.1 1)
+							(set! x.2 2)
+							x.2)
+  there are no duplications, problem of shadowing of variables is resolved 
+  in UIL variables.
+
+--------
+
+4. Describe what assignment conversion does.
+   
+  Assignment Conversion aims to remove the set! expressions in our 
+  language, it does so by keeping track of the uvars that appear on the lhs
+  of our set! expressions, generating new uvars for these uvars, the old uvars
+  are now converted into pairs, the car of which is the corresponding new uvar
+  all occurences of the old uvar are replaced by (car uvar) all set! get converted
+  to set-car!, Thus all variables appearing on the lhs of set! are converted to a pair
+  to a pair whose car is the original value and whose cdr is void.
+
+
+--------
+
+5. Here is a box-and-pointer diagram of a Scheme value consisting of
+   a pair whose car is the fixnum 7 and whose cdr is a closure with one
+   free variable whose value is the fixnum 3.
+
+    pair                  closure
+    +-------+-------+     +-------+-------+
+    |   7   |   x---+---->|   x   |   3   |
+    +-------+-------+     +---+---+-------+
+                              |
+                              v
+                             code
+
+   A Scheme expression that will produce this value is
+
+     (let ([x 3]) (cons 7 (lambda () x)))
+
+   Consider the second box-and-pointer diagram below:
+
+       closure               pair
+       +-------+-------+     +-------+-------+
+    +->|   x   |   x---+---->|   x   | void  |
+    |  +---+---+-------+     +---+---+-------+
+    |      |                     |
+    |      v                     |
+    |     code                   |
+    +----------------------------+
+                             
+   5a. Write down a source-language expression that evaluates to the value
+       illustrated by the second diagram.  Do not use set!.
+
+			(letrec
+				([x (cons 5 (void))]
+	 			 [anon 
+					(lambda ()
+						(begin
+						(set-car! x anon)
+						x))])
+				 anon)
+
+   5b. Write down another source-language expression that evaluates to the
+       value illustrated by the second diagram, assuming our
+       assignment-conversion mechanism is used.  Do not use set-car!.
+	
+	(let ([x 5])
+		(letrec 
+			([anon 
+				(lambda ()
+					(begin
+					(set! x anon)
+					x))])
+		anon))
+--------
+
+6. Assuming the following bit patterns are ptrs encoded using the
+   standard helpers.ss object-layout definitions, describe the Scheme
+   object each represents, e.g., ``the boolean value #t'' or
+   ``a pair at address #b00111000.''  Write ``garbage'' if the bit
+   pattern is not a valid ptr.
+
+   #b00011000 The Fixnum 3
+   #b00101011 A vector at address #b00101000
+   #b01101111 garbage
+   #b00011010 A procedure at address #b00011000
+   #b00001001 A pair at address #b00001000
+
+--------
+
+7. Describe or draw a box-and-pointer diagram of the Scheme object
+   represented by the ptr #b00010011, assuming the six consecutive 64-bit
+   memory locations starting at address #b00010000 contain:
+
+   #b00010000
+   #b00110001
+   #b00000110
+   #b00001110
+   #b00110001
+   #b00110000
+
+  A vector of 2 elements the first is a pair whose car points to itself and cdr is 6
+  and the second element of vector is #f.
+
+   A description might read something like ``a pair whose car is the
+   fixnum 7 and whose cdr is a closure with one free variable whose value
+   is the fixnum 3,'' as in the first sentence of problem 5.
+
+--------
+
+8. Name two pairs of consecutive passes in your compiler that can be
+   combined into a single pass, and two pairs of consecutive passes that
+   cannot be combined without adverse consequences. Briefly justify.
+   Can Combine
+   a) discard-call-live and finalize-locations can be combined into a single pass since the latter simply
+   gets rid of the call-live variables and the latter part simply replaces occurences of uvars with
+   the finalized frame or register locations.
+   b) uncover-free and convert-closures can be combined into a single pass, because the former just 
+   returns a list of free variables in a lambda expression and the latter introduces the closures form
+ 
+   Cant
+   a) select-instructions and uncover-register-conflict because, select-instructions
+   involves introduction of temporaries that could conflict with just introduced temporaries
+   and it would be difficult to keep track of conflicts
+   b) impose-calling-conventions and uncover-frame-conflict because impose-calling-conventions 
+   introduces the return-point form for non-tail calls, which would mess up the way we uncover 
+   frame-conflicts.
+
+--------
+
+9. Consider the following UIL program.
+
+   (letrec ()
+     (locals (t.2 t.4 t.5 t.6 v.1 t.3)
+       (begin
+         (set! t.2
+           (begin
+             (set! t.4 8)
+             (set! t.5 16)
+             (set! t.6 (+ (alloc 16) 1))
+             (mset! t.6 -1 t.4)
+             (mset! t.6 7 t.5)
+             t.6))
+         (set! v.1
+           (begin
+             (set! t.3 (+ (alloc 24) 3))
+             (mset! t.3 -3 16)
+             t.3))
+         (mset! v.1 5 t.2)
+         (mset! v.1 13 80)
+         v.1)))
+
+   Write down a source-language program for which the online compiler's
+   Scheme front-end produces the UIL program above.  (Your compiler should
+   produce a similar UIL program.)
+	
+A:	(let ([t (cons 1 2)] [v (make-vector 2)])
+			 (begin
+				(vector-set! v 1 t)
+				(vector-set! v 2 10)
+				v))
+
+--------
+
+10. We could eliminate the ugly return-point form by putting off the
+    creation of return-point labels until expose-basic-blocks, which
+    already creates labels for if-expression consequents, alternatives,
+    and join points.  Say why we don't do so.
+
+	return-point expressions are introduced when we come across non-tail calls in our code, 
+	in impose-calling-conventions pass, which means that the state of the computation should 
+	be saved and a new frame must be allocated for the function that is going to be called defined 
+	by the return-point label, this helps us to get correct frame-conflicts for the subsequent 
+	passes, and hence helps in the allocation mechanism.
+--------
+
+11. Study the expression below.
+
+    (let ([f (lambda (y)
+               (lambda (p)
+                 (cons y (p y))))])
+      (letrec ([g (lambda (n)
+                    (if (= n 0)
+                        '()
+                        ((f (- n 1)) g)))])
+        (g 6)))
+
+    Fill in the blanks:
+
+    11a. The value of this expression is '(5 4 3 2 1 0).
+         (Work out by hand first, then verify by running.)
+
+    11b. f is called 6 times.
+
+    11c. g is called 7 times.
+
+    11d. 8 closures are allocated.
+
+    11e. 6 pairs are allocated.
+
+    11f. 28 total words are allocated in the heap.
+         (Show how you came up with that answer.)
+         
+         There are a total of 6 pairs each pair is 2 words i.e 12 words
+         g is a closure of 3 words 1st word is code of g and 2nd is a pointer
+         to f and 3rd a pointer to itself i.e 3 words
+         f contains no free hence takes up 1 word
+         the anonymous function requires 2 words 1st for ptr to code and freevar y
+         i.e 2 words and is called 6 times = 2 * 6
+         Total = 28
+         
+
+    11g. The stack will get 6 frames deep by virtue of calls
+         initiated by (g 6).
+
+    Assume that no challenge-assignment passes are run.
+
+    Hint: It will help to trace by hand the sequence of calls and while
+    doing so draw diagrams of the stack and each closure and pair.
+
+    Hint: You can verify your answers by tracing f, g, and (in the
+    language wrapper for one of the passes) alloc, so there's no excuse
+    not to get each of these answers correct.

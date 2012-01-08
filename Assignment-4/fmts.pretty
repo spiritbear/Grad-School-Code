@@ -1,0 +1,5 @@
+(pretty-format 'match '(_ x #f [bracket e 0 ...] ...))
+(pretty-format 'code '(_ #f e ...))
+(pretty-format 'locals '(_ (var ...) #f e))
+(pretty-format 'locate '(_ ([bracket var loc] 0 ...) #f e))
+(pretty-format 'register-conflict '(_ x #f e))
